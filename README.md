@@ -3,7 +3,7 @@ Mini rke cluster deployment with vagrant and ansible.
 
 Work in progress
 
-##Prerequisites
+## Prerequisites
 - ansible 2.9
 - vagrant 
 
