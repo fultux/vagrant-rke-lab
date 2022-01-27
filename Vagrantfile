@@ -1,50 +1,60 @@
-# frozen_string_literal: true
-
-# -*- mode: ruby -*-
-# vi: set ft=ruby :
+VM_IMAGE="opensuse/Leap-15.3.x86_64"
+MASTER_MEM=2048
+MASTER_CPU=1
+WORKER_MEM=2048
+WORKER_CPU=1
+IP_VM1='10.20.30.40'
+IP_VM2='10.20.30.41'
+IP_VM3='10.20.30.42'
+IP_VM4='10.20.30.43'
+SSH_KEY=ENV['SSH_KEY']
 
 Vagrant.configure("2") do |config|
-  config.vm.define :main do |main|
-    main.vm.box = "opensuse/Leap-15.2.x86_64"
-    main.vm.provider :libvirt do |domain|
-      domain.memory = 2048
-      domain.cpus = 2
+  config.vm.define :master do |master|
+    master.vm.box = VM_IMAGE 
+    master.vm.hostname = "master"
+    master.vm.provider :libvirt do |master|
+      master.memory = MASTER_MEM
+      master.cpus = MASTER_CPU
     end
-
-    main.vm.network :private_network, :ip => '10.20.30.40'
-    main.vm.network :public_network, :ip => '10.20.30.41'
+    master.vm.network :private_network, :ip => IP_VM1 
  end
-  config.vm.define :node do |node|
-    node.vm.box = "opensuse/Leap-15.2.x86_64"
-    node.vm.provider :libvirt do |domain|
-      domain.memory = 4096
-      domain.cpus = 2
+ config.vm.define :master2 do |master2|
+    master2.vm.box = VM_IMAGE
+    master2.vm.hostname = "master2"
+    master2.vm.provider :libvirt do |master2|
+      master2.memory = MASTER_MEM
+      master2.cpus = WORKER_CPU
     end
-
-    node.vm.network :private_network, :ip => '10.20.30.42'
-    node.vm.network :public_network, :ip => '10.20.30.43'
+    master2.vm.network :private_network, :ip => IP_VM2
  end
-
-  config.vm.define :lb do |lb|
-    lb.vm.box = "opensuse/Leap-15.2.x86_64"
-    lb.vm.provider :libvirt do |domain|
-      domain.memory = 2048
-      domain.cpus = 1
+  config.vm.define :worker1 do |worker1|
+    worker1.vm.hostname = "worker2"
+    worker1.vm.box = VM_IMAGE
+    worker1.vm.provider :libvirt do |worker1| 
+     worker1 .memory = WORKER_MEM
+     worker1.cpus = WORKER_CPU
     end
-
-    lb.vm.network :private_network, :ip => '10.20.30.44'
-    lb.vm.network :public_network, :ip => '10.20.30.45'
+    worker1.vm.network :private_network, :ip => IP_VM3
  end
-
-
-
-  config.vm.provision "ansible" do |ansible|
-	  ansible.playbook = "./playbook.yaml"
-	   ansible.groups = {
-             "cluster" => ["main","node"],
-	     "loadbalancer" => ["lb"],
-	     "loadbalancer:vars" => {"ip_node" => "10.20.30.43"}
-	    }
-  end
+  config.vm.define :worker2 do |worker2|
+    worker2.vm.hostname = "worker2"
+    worker2.vm.box = VM_IMAGE
+    worker2.vm.provider :libvirt do |worker2|
+      worker2.memory = WORKER_MEM
+      worker2.cpus = WORKER_CPU
+    end
+    worker2.vm.network :private_network, :ip => IP_VM4
+ end
+ config.vm.synced_folder "salt/roots/", "/srv/salt/"
+ config.vm.provision :salt do |salt|
+  salt.pillar({
+    "ssh_key" => {
+      "my_key" => SSH_KEY,
+    }  
+  })
+    salt.masterless = true
+    salt.run_highstate = true
+ end
 end
 
